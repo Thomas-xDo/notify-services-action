@@ -1,0 +1,44 @@
+name: "Notify via notify-services"
+description: "Send a notification through notify-services (fan-out to Slack/Discord/Telegram/webhook)"
+author: "Thomas Labs"
+
+inputs:
+  api-key:
+    description: "notify-services App API key (nsvc_...). Store it as a repo secret, never inline."
+    required: true
+  service:
+    description: "Free-form label for the caller (e.g. the repo/workflow name)"
+    required: true
+  message:
+    description: "Notification message body"
+    required: true
+  title:
+    description: "Notification title"
+    required: false
+    default: ""
+  level:
+    description: "info | warning | error | critical"
+    required: false
+    default: "info"
+  api-url:
+    description: "notify-services API base URL"
+    required: false
+    default: "https://notify-api.thomas-labs.com"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Send notification
+      shell: bash
+      run: |
+        body=$(jq -n \
+          --arg service "${{ inputs.service }}" \
+          --arg title "${{ inputs.title }}" \
+          --arg message "${{ inputs.message }}" \
+          --arg level "${{ inputs.level }}" \
+          '{service: $service, title: $title, message: $message, level: $level}')
+
+        curl -sf -X POST "${{ inputs.api-url }}/v1/notify" \
+          -H "Authorization: Bearer ${{ inputs.api-key }}" \
+          -H "Content-Type: application/json" \
+          -d "$body"
