@@ -43,6 +43,7 @@ Composite GitHub Action wrapper around [`notify-services`](https://github.com/Th
 | `message` | yes | — | Notification body |
 | `title` | no | `""` | Notification title |
 | `level` | no | `info` | `info` \| `warning` \| `error` \| `critical` |
+| `to` | no | `""` (all enabled destinations) | Comma-separated destination types to target, e.g. `telegram` or `telegram,slack` |
 | `api-url` | no | `https://notify-api.thomas-labs.com` | Override for testing against another deployment |
 
 By default the step fails the job if the notification itself fails to send

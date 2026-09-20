@@ -20,6 +20,13 @@ inputs:
     description: "info | warning | error | critical"
     required: false
     default: "info"
+  to:
+    description: >-
+      Comma-separated destination types to target (slack, discord,
+      telegram, webhook). Leave empty to fan out to every enabled
+      destination on the App (default).
+    required: false
+    default: ""
   api-url:
     description: "notify-services API base URL"
     required: false
@@ -36,7 +43,9 @@ runs:
           --arg title "${{ inputs.title }}" \
           --arg message "${{ inputs.message }}" \
           --arg level "${{ inputs.level }}" \
-          '{service: $service, title: $title, message: $message, level: $level}')
+          --arg to "${{ inputs.to }}" \
+          '{service: $service, title: $title, message: $message, level: $level}
+           + (if $to == "" then {} else {to: ($to | split(",") | map(gsub("^\\s+|\\s+$";"")))} end)')
 
         curl -sf -X POST "${{ inputs.api-url }}/v1/notify" \
           -H "Authorization: Bearer ${{ inputs.api-key }}" \
