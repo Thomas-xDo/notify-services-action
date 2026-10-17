@@ -10,16 +10,39 @@ inputs:
     description: "Free-form label for the caller (e.g. the repo/workflow name)"
     required: true
   message:
-    description: "Notification message body"
-    required: true
+    description: >-
+      Notification body, sent as it is. Leave it empty to have the action
+      build the standard CI message from `event`, `jobs`/`status` and the run.
+    required: false
+    default: ""
+  event:
+    description: "Standard message: what ran (deploy, build, test, backup, release, rollback, or any word)"
+    required: false
+    default: "deploy"
+  jobs:
+    description: "Standard message: the needs context as JSON (toJSON of needs); the result and the per-job line come from it"
+    required: false
+    default: ""
+  status:
+    description: "Standard message: success | failure | cancelled. Overrides the result worked out from `jobs`"
+    required: false
+    default: ""
+  target:
+    description: "Standard message: where it went, added to the title (e.g. dev, production)"
+    required: false
+    default: ""
+  details:
+    description: "Standard message: extra lines put before the run link (e.g. `Image: <tag>`)"
+    required: false
+    default: ""
   title:
-    description: "Notification title"
+    description: "Notification title. With the standard message it replaces the built title"
     required: false
     default: ""
   level:
-    description: "info | warning | error | critical"
+    description: "info | warning | error | critical. Empty: info, or with the standard message the level that fits the result"
     required: false
-    default: "info"
+    default: ""
   to:
     description: >-
       Comma-separated destination types to target (slack, discord,
@@ -37,17 +60,17 @@ runs:
   steps:
     - name: Send notification
       shell: bash
-      run: |
-        body=$(jq -n \
-          --arg service "${{ inputs.service }}" \
-          --arg title "${{ inputs.title }}" \
-          --arg message "${{ inputs.message }}" \
-          --arg level "${{ inputs.level }}" \
-          --arg to "${{ inputs.to }}" \
-          '{service: $service, title: $title, message: $message, level: $level}
-           + (if $to == "" then {} else {to: ($to | split(",") | map(gsub("^\\s+|\\s+$";"")))} end)')
-
-        curl -sf -X POST "${{ inputs.api-url }}/v1/notify" \
-          -H "Authorization: Bearer ${{ inputs.api-key }}" \
-          -H "Content-Type: application/json" \
-          -d "$body"
+      env:
+        NOTIFY_API_KEY: ${{ inputs.api-key }}
+        NOTIFY_SERVICE: ${{ inputs.service }}
+        NOTIFY_MESSAGE: ${{ inputs.message }}
+        NOTIFY_EVENT: ${{ inputs.event }}
+        NOTIFY_JOBS: ${{ inputs.jobs }}
+        NOTIFY_STATUS: ${{ inputs.status }}
+        NOTIFY_TARGET: ${{ inputs.target }}
+        NOTIFY_DETAILS: ${{ inputs.details }}
+        NOTIFY_TITLE: ${{ inputs.title }}
+        NOTIFY_LEVEL: ${{ inputs.level }}
+        NOTIFY_TO: ${{ inputs.to }}
+        NOTIFY_API_URL: ${{ inputs.api-url }}
+      run: '"$GITHUB_ACTION_PATH/notify.sh"'
